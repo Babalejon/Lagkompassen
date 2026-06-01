@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lagkompassen – Svenska miljö- och hållbarhetslagar för företag</title>
+  <meta
+    name="description"
+    content="Sök bland svenska lagar och förordningar inom miljö och hållbarhet som berör företag. Generera en checklista för varje lag."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="#top" id="top">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <strong>Lagkompassen</strong>
+          <small>Miljö &amp; hållbarhet för företag</small>
+        </span>
+      </a>
+      <nav class="header-meta">
+        <span id="lawCountBadge" class="badge">0 lagar</span>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <h1>Svenska miljö- och hållbarhetslagar för företag</h1>
+      <p class="hero-lead">
+        Sök bland centrala lagar och förordningar inom miljö och hållbarhet som
+        berör företag. Klicka på en lag för att läsa mer och generera en
+        konkret checklista för efterlevnad.
+      </p>
+
+      <div class="search-wrap">
+        <span class="search-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </span>
+        <input
+          type="search"
+          id="searchInput"
+          placeholder="Sök på lag, ämne eller nyckelord – t.ex. avfall, köldmedier, CSRD…"
+          autocomplete="off"
+          aria-label="Sök bland lagar"
+        />
+        <button type="button" id="clearSearch" class="clear-btn" aria-label="Rensa sökning" hidden>&times;</button>
+      </div>
+
+      <div class="filters" id="categoryFilters" role="group" aria-label="Filtrera på kategori"></div>
+    </div>
+  </section>
+
+  <main class="container">
+    <div class="results-bar">
+      <p id="resultsInfo" class="results-info"></p>
+    </div>
+    <div id="lawList" class="law-grid" aria-live="polite"></div>
+    <div id="emptyState" class="empty-state" hidden>
+      <p>Inga lagar matchar din sökning.</p>
+      <button type="button" class="btn-secondary" id="resetFromEmpty">Visa alla lagar</button>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p class="disclaimer">
+        <strong>Observera:</strong> Lagkompassen är ett informations- och
+        vägledningsverktyg och utgör inte juridisk rådgivning. Checklistorna är
+        ett stöd för egenkontroll och är inte uttömmande. Kontrollera alltid den
+        senaste lydelsen på riksdagen.se / lagrummet.se och stäm av med din
+        tillsynsmyndighet.
+      </p>
+      <p class="footer-meta">Lagkompassen · Byggd som öppen kunskapsresurs.</p>
+    </div>
+  </footer>
+
+  <!-- Detaljvy / modal för en enskild lag -->
+  <div class="modal-overlay" id="modalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button type="button" class="modal-close" id="modalClose" aria-label="Stäng">&times;</button>
+      <div class="modal-body" id="modalBody"></div>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
