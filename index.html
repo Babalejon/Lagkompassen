@@ -42,6 +42,11 @@
         </span>
       </a>
       <nav class="header-meta">
+        <button type="button" class="lists-btn" id="openListsBtn" aria-haspopup="dialog">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+          Mina listor
+          <span class="lists-count" id="listsCount" hidden>0</span>
+        </button>
         <span id="lawCountBadge" class="badge">0 lagar</span>
       </nav>
     </div>
@@ -78,6 +83,7 @@
   </section>
 
   <main class="container">
+    <div id="activeListBanner" class="active-list-banner" hidden></div>
     <div class="results-bar">
       <p id="resultsInfo" class="results-info"></p>
       <label class="sort-control">
@@ -116,6 +122,17 @@
       <div class="modal-body" id="modalBody"></div>
     </div>
   </div>
+
+  <!-- Hantera mina listor -->
+  <div class="modal-overlay" id="listsOverlay" hidden>
+    <div class="modal modal-lists" role="dialog" aria-modal="true" aria-labelledby="listsTitle">
+      <button type="button" class="modal-close" id="listsClose" aria-label="Stäng">&times;</button>
+      <div class="modal-body" id="listsModalBody"></div>
+    </div>
+  </div>
+
+  <!-- Popover: lägg lag till lista -->
+  <div class="popover" id="listPopover" role="dialog" aria-label="Lägg till i lista" hidden></div>
 
   <script src="data.js"></script>
   <script src="app.js"></script>

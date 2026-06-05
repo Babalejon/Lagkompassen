@@ -731,10 +731,352 @@ body.modal-open {
   overflow: hidden;
 }
 
+/* ---- Listor: header-knapp ---- */
+.lists-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 8px 13px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.14s, color 0.14s, background 0.14s;
+}
+
+.lists-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  background: var(--primary-soft);
+}
+
+.lists-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* ---- Bokmärkesknapp på kort ---- */
+.law-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.law-card-top-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bookmark-btn {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+
+.bookmark-btn:hover {
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.bookmark-btn.active {
+  color: var(--primary);
+}
+
+/* ---- Banner för aktiv lista ---- */
+.active-list-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+  padding: 14px 18px;
+  background: var(--primary-soft);
+  border: 1px solid #cfe6da;
+  border-radius: var(--radius);
+}
+
+.alb-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--primary-dark);
+  font-size: 0.95rem;
+}
+
+.alb-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.btn-sm {
+  padding: 7px 13px !important;
+  font-size: 0.82rem !important;
+}
+
+.btn-addtolist.active {
+  border-color: var(--primary);
+  color: var(--primary-dark);
+  background: var(--primary-soft);
+}
+
+/* ---- Popover: lägg till i lista ---- */
+.popover {
+  position: fixed;
+  z-index: 60;
+  width: 268px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 12px;
+  animation: pop 0.14s ease;
+}
+
+.pop-head {
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: var(--ink-faint);
+  padding: 2px 4px 8px;
+}
+
+.pop-rows {
+  max-height: 220px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pop-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  padding: 9px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: var(--ink);
+  text-align: left;
+}
+
+.pop-row:hover {
+  background: var(--bg);
+}
+
+.pop-check {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border: 1.5px solid var(--border);
+  border-radius: 6px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.pop-row.checked .pop-check {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.pop-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pop-count {
+  font-size: 0.78rem;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+
+.pop-empty {
+  font-size: 0.86rem;
+  color: var(--ink-faint);
+  margin: 4px 4px 10px;
+}
+
+.pop-create {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.pop-create input {
+  flex: 1;
+  min-width: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: inherit;
+  font-size: 0.88rem;
+}
+
+.pop-create input:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
+/* ---- Hantera listor (modal) ---- */
+.lists-modal-title {
+  margin: 0 0 4px;
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+.lists-modal-sub {
+  margin: 0 0 22px;
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.lists-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.list-item {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.list-item:hover {
+  border-color: #cfe0d6;
+}
+
+.list-open {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: none;
+  background: transparent;
+  padding: 14px 16px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+}
+
+.list-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.list-meta {
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.list-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 10px;
+}
+
+.icon-btn {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+}
+
+.icon-btn:hover {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+.icon-btn.danger:hover {
+  background: #fbe9e7;
+  color: #c0392b;
+}
+
+.lists-empty {
+  font-size: 0.94rem;
+  color: var(--ink-soft);
+  background: var(--bg);
+  padding: 18px;
+  border-radius: var(--radius-sm);
+  margin: 0 0 20px;
+}
+
+.lists-create {
+  display: flex;
+  gap: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.lists-create input {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 11px 14px;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.lists-create input:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+}
+
 @media (max-width: 560px) {
   .modal-body { padding: 28px 20px 24px; }
   .hero { padding: 36px 0 22px; }
   .law-grid { grid-template-columns: 1fr; }
+  .lists-btn .lists-count { margin-left: 2px; }
+  .active-list-banner { flex-direction: column; align-items: flex-start; }
 }
 
 @media print {

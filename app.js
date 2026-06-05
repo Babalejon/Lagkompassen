@@ -4,6 +4,7 @@
 
   const laws = (window.LAWS || []).slice();
   const STORAGE_KEY = "lagkompassen.checklist.v1";
+  const LISTS_KEY = "lagkompassen.lists.v1";
   const HASH_PREFIX = "lag/";
 
   // DOM-referenser
@@ -19,12 +20,21 @@
   const overlay = document.getElementById("modalOverlay");
   const modalBody = document.getElementById("modalBody");
   const modalClose = document.getElementById("modalClose");
+  const openListsBtn = document.getElementById("openListsBtn");
+  const listsCountEl = document.getElementById("listsCount");
+  const listsOverlay = document.getElementById("listsOverlay");
+  const listsClose = document.getElementById("listsClose");
+  const listsModalBody = document.getElementById("listsModalBody");
+  const listPopover = document.getElementById("listPopover");
+  const activeListBanner = document.getElementById("activeListBanner");
 
   let activeCategory = "Alla";
   let query = "";
   let currentSort = "title";
   let openLawId = null;
   let lastFocused = null;
+  let activeListId = null;
+  let popoverLawId = null;
 
   // ---- Persistens av ikryssade checklistpunkter ----
   function loadProgress() {
@@ -42,6 +52,74 @@
     }
   }
   let progress = loadProgress();
+
+  // ---- Listor (sparade samlingar av lagar) ----
+  function loadLists() {
+    try {
+      const data = JSON.parse(localStorage.getItem(LISTS_KEY));
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      return [];
+    }
+  }
+  function saveLists() {
+    try {
+      localStorage.setItem(LISTS_KEY, JSON.stringify(lists));
+    } catch (e) {
+      /* localStorage kan vara avstängt – ignorera */
+    }
+  }
+  let lists = loadLists();
+
+  function uid() {
+    return "l" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function createList(name) {
+    const clean = (name || "").trim() || "Ny lista";
+    const list = { id: uid(), name: clean, lawIds: [], createdAt: Date.now() };
+    lists.push(list);
+    saveLists();
+    return list;
+  }
+
+  function getList(id) {
+    return lists.find((l) => l.id === id) || null;
+  }
+
+  function listsContaining(lawId) {
+    return lists.filter((l) => l.lawIds.indexOf(lawId) !== -1);
+  }
+
+  function toggleLawInList(listId, lawId) {
+    const list = getList(listId);
+    if (!list) return;
+    const i = list.lawIds.indexOf(lawId);
+    if (i === -1) list.lawIds.push(lawId);
+    else list.lawIds.splice(i, 1);
+    saveLists();
+  }
+
+  function renameList(id, name) {
+    const list = getList(id);
+    if (!list) return;
+    const clean = (name || "").trim();
+    if (clean) {
+      list.name = clean;
+      saveLists();
+    }
+  }
+
+  function deleteList(id) {
+    lists = lists.filter((l) => l.id !== id);
+    saveLists();
+    if (activeListId === id) activeListId = null;
+  }
+
+  function updateListsCount() {
+    listsCountEl.textContent = lists.length;
+    listsCountEl.hidden = lists.length === 0;
+  }
 
   // ---- Hjälpfunktioner ----
   function escapeHtml(str) {
@@ -138,13 +216,23 @@
 
   function buildCard(law) {
     const { done, total } = lawProgressRatio(law);
-    const card = document.createElement("button");
-    card.type = "button";
+    const inLists = listsContaining(law.id);
+    const saved = inLists.length > 0;
+    const card = document.createElement("article");
     card.className = "law-card";
+    card.tabIndex = 0;
+    card.setAttribute("role", "button");
     card.innerHTML = `
       <div class="law-card-top">
         <span class="law-cat">${escapeHtml(law.category)}</span>
-        <span class="law-sfs">${escapeHtml(law.sfs)}</span>
+        <div class="law-card-top-right">
+          <span class="law-sfs">${escapeHtml(law.sfs)}</span>
+          <button type="button" class="bookmark-btn${saved ? " active" : ""}"
+            aria-label="${saved ? "Sparad i lista" : "Lägg till i lista"}"
+            title="${saved ? "I " + inLists.length + " lista(or)" : "Lägg till i lista"}">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="${saved ? "currentColor" : "none"}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+          </button>
+        </div>
       </div>
       <h3>${highlight(law.title, query)}</h3>
       <p>${highlight(law.summary, query)}</p>
@@ -156,12 +244,30 @@
         <span class="law-auth">${escapeHtml(law.authority)}</span>
       </div>`;
     card.addEventListener("click", () => openModal(law.id));
+    card.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openModal(law.id);
+      }
+    });
+    const bm = card.querySelector(".bookmark-btn");
+    bm.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openListPopover(law.id, bm);
+    });
+    bm.addEventListener("keydown", (e) => e.stopPropagation());
     return card;
   }
 
   function renderList() {
+    renderActiveListBanner();
+    const activeList = activeListId ? getList(activeListId) : null;
+    const pool = activeList
+      ? laws.filter((law) => activeList.lawIds.indexOf(law.id) !== -1)
+      : laws;
+
     const filtered = sortLaws(
-      laws.filter(
+      pool.filter(
         (law) =>
           (activeCategory === "Alla" || law.category === activeCategory) &&
           matchesQuery(law, query)
@@ -177,10 +283,11 @@
     }
     emptyState.hidden = true;
 
+    const base = pool.length;
     resultsInfo.textContent =
-      filtered.length === laws.length
-        ? `Visar samtliga ${laws.length} lagar`
-        : `Visar ${filtered.length} av ${laws.length} lagar`;
+      filtered.length === base
+        ? `Visar ${base === laws.length ? "samtliga " : ""}${base} lagar`
+        : `Visar ${filtered.length} av ${base} lagar`;
 
     const frag = document.createDocumentFragment();
     filtered.forEach((law) => frag.appendChild(buildCard(law)));
@@ -291,6 +398,10 @@
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             Ladda ner
           </button>
+          <button type="button" class="btn-ghost btn-addtolist" id="addToListBtn">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+            <span class="atl-label">Lägg till i lista</span>
+          </button>
           <button type="button" class="btn-ghost" id="resetChecklist">Nollställ</button>
           ${
             law.link
@@ -342,6 +453,12 @@
     modalBody.querySelector("#printBtn").addEventListener("click", () => window.print());
     modalBody.querySelector("#copyBtn").addEventListener("click", (e) => copyChecklist(law, e.currentTarget));
     modalBody.querySelector("#downloadBtn").addEventListener("click", () => downloadChecklist(law));
+    const addBtn = modalBody.querySelector("#addToListBtn");
+    addBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      openListPopover(law.id, addBtn);
+    });
+    refreshModalListButton();
     modalBody.querySelector("#resetChecklist").addEventListener("click", () => {
       progress[law.id] = {};
       saveProgress(progress);
@@ -474,6 +591,217 @@
     if (lastFocused && document.contains(lastFocused)) lastFocused.focus();
   }
 
+  // ---- Aktiv lista (filtrera rutnätet till en sparad lista) ----
+  function setActiveList(id) {
+    activeListId = id;
+    activeCategory = "Alla";
+    renderFilters();
+    renderList();
+    document.querySelector(".results-bar").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  function clearActiveList() {
+    activeListId = null;
+    renderList();
+  }
+
+  function renderActiveListBanner() {
+    const list = activeListId ? getList(activeListId) : null;
+    if (!list) {
+      activeListBanner.hidden = true;
+      activeListBanner.innerHTML = "";
+      return;
+    }
+    activeListBanner.hidden = false;
+    activeListBanner.innerHTML = `
+      <div class="alb-info">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+        <span>Visar listan <strong>${escapeHtml(list.name)}</strong> · ${list.lawIds.length} lag${
+      list.lawIds.length === 1 ? "" : "ar"
+    }</span>
+      </div>
+      <div class="alb-actions">
+        <button type="button" class="btn-ghost btn-sm" id="albManage">Hantera listor</button>
+        <button type="button" class="btn-primary btn-sm" id="albClear">Visa alla lagar</button>
+      </div>`;
+    activeListBanner.querySelector("#albClear").addEventListener("click", clearActiveList);
+    activeListBanner.querySelector("#albManage").addEventListener("click", openListsModal);
+  }
+
+  // ---- Popover: lägg en lag till en eller flera listor ----
+  function openListPopover(lawId, anchor) {
+    popoverLawId = lawId;
+    renderPopover();
+    listPopover.hidden = false;
+    positionPopover(anchor);
+    const firstInput = listPopover.querySelector("input, button");
+    if (firstInput) firstInput.focus();
+  }
+
+  function positionPopover(anchor) {
+    const r = anchor.getBoundingClientRect();
+    const pw = listPopover.offsetWidth || 260;
+    const ph = listPopover.offsetHeight || 200;
+    let left = r.right - pw;
+    let top = r.bottom + 8;
+    left = Math.max(12, Math.min(left, window.innerWidth - pw - 12));
+    if (top + ph > window.innerHeight - 12) top = Math.max(12, r.top - ph - 8);
+    listPopover.style.left = left + "px";
+    listPopover.style.top = top + "px";
+  }
+
+  function renderPopover() {
+    const lawId = popoverLawId;
+    const rows = lists.length
+      ? lists
+          .map((l) => {
+            const inList = l.lawIds.indexOf(lawId) !== -1;
+            return `
+              <button type="button" class="pop-row${inList ? " checked" : ""}" data-list="${escapeHtml(
+              l.id
+            )}">
+                <span class="pop-check" aria-hidden="true">${inList ? "✓" : ""}</span>
+                <span class="pop-name">${escapeHtml(l.name)}</span>
+                <span class="pop-count">${l.lawIds.length}</span>
+              </button>`;
+          })
+          .join("")
+      : `<p class="pop-empty">Du har inga listor än. Skapa en nedan.</p>`;
+
+    listPopover.innerHTML = `
+      <div class="pop-head">Lägg till i lista</div>
+      <div class="pop-rows">${rows}</div>
+      <form class="pop-create" id="popCreate">
+        <input type="text" id="popNewName" placeholder="Ny lista…" maxlength="60" autocomplete="off" aria-label="Namn på ny lista" />
+        <button type="submit" class="btn-primary btn-sm">Skapa</button>
+      </form>`;
+
+    listPopover.querySelectorAll(".pop-row").forEach((row) => {
+      row.addEventListener("click", () => {
+        toggleLawInList(row.dataset.list, lawId);
+        renderPopover();
+        updateListsCount();
+        renderList();
+        refreshModalListButton();
+      });
+    });
+
+    listPopover.querySelector("#popCreate").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = listPopover.querySelector("#popNewName");
+      const list = createList(input.value);
+      toggleLawInList(list.id, lawId);
+      renderPopover();
+      updateListsCount();
+      renderList();
+      refreshModalListButton();
+      const nameInput = listPopover.querySelector("#popNewName");
+      if (nameInput) nameInput.focus();
+    });
+  }
+
+  function closeListPopover() {
+    if (listPopover.hidden) return;
+    listPopover.hidden = true;
+    popoverLawId = null;
+  }
+
+  // Uppdatera "Lägg till i lista"-knappen i lagmodalen om den är öppen.
+  function refreshModalListButton() {
+    const btn = modalBody.querySelector("#addToListBtn");
+    if (!btn || !openLawId) return;
+    const n = listsContaining(openLawId).length;
+    btn.classList.toggle("active", n > 0);
+    const lbl = btn.querySelector(".atl-label");
+    if (lbl) lbl.textContent = n > 0 ? "I " + n + " lista" + (n === 1 ? "" : "or") : "Lägg till i lista";
+  }
+
+  // ---- Hantera listor (modal) ----
+  function openListsModal() {
+    closeListPopover();
+    renderListsModal();
+    listsOverlay.hidden = false;
+    document.body.classList.add("modal-open");
+    listsClose.focus();
+  }
+
+  function closeListsModal() {
+    listsOverlay.hidden = true;
+    if (overlay.hidden) document.body.classList.remove("modal-open");
+  }
+
+  function renderListsModal() {
+    const items = lists.length
+      ? lists
+          .map(
+            (l) => `
+        <div class="list-item" data-list="${escapeHtml(l.id)}">
+          <button type="button" class="list-open" data-open="${escapeHtml(l.id)}">
+            <span class="list-name">${escapeHtml(l.name)}</span>
+            <span class="list-meta">${l.lawIds.length} lag${l.lawIds.length === 1 ? "" : "ar"}</span>
+          </button>
+          <div class="list-item-actions">
+            <button type="button" class="icon-btn" data-rename="${escapeHtml(l.id)}" title="Byt namn" aria-label="Byt namn">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+            </button>
+            <button type="button" class="icon-btn danger" data-delete="${escapeHtml(l.id)}" title="Ta bort" aria-label="Ta bort lista">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </div>
+        </div>`
+          )
+          .join("")
+      : `<p class="lists-empty">Du har inga listor än. Skapa din första nedan – sedan kan du spara lagar i den via bokmärkesikonen på varje lag.</p>`;
+
+    listsModalBody.innerHTML = `
+      <h2 id="listsTitle" class="lists-modal-title">Mina listor</h2>
+      <p class="lists-modal-sub">Samla lagar som hör ihop, t.ex. per verksamhet, projekt eller ansvarsområde. Sparas lokalt i din webbläsare.</p>
+      <div class="lists-items">${items}</div>
+      <form class="lists-create" id="listsCreateForm">
+        <input type="text" id="listsNewName" placeholder="Namnge en ny lista…" maxlength="60" autocomplete="off" aria-label="Namn på ny lista" />
+        <button type="submit" class="btn-primary">Skapa lista</button>
+      </form>`;
+
+    listsModalBody.querySelectorAll("[data-open]").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        setActiveList(btn.dataset.open);
+        closeListsModal();
+      })
+    );
+    listsModalBody.querySelectorAll("[data-rename]").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        const list = getList(btn.dataset.rename);
+        if (!list) return;
+        const name = window.prompt("Nytt namn på listan:", list.name);
+        if (name !== null) {
+          renameList(list.id, name);
+          renderListsModal();
+          renderList();
+        }
+      })
+    );
+    listsModalBody.querySelectorAll("[data-delete]").forEach((btn) =>
+      btn.addEventListener("click", () => {
+        const list = getList(btn.dataset.delete);
+        if (!list) return;
+        if (window.confirm('Ta bort listan "' + list.name + '"? Lagarna påverkas inte.')) {
+          deleteList(list.id);
+          updateListsCount();
+          renderListsModal();
+          renderList();
+        }
+      })
+    );
+    listsModalBody.querySelector("#listsCreateForm").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const input = listsModalBody.querySelector("#listsNewName");
+      if (!input.value.trim()) return;
+      createList(input.value);
+      updateListsCount();
+      renderListsModal();
+    });
+  }
+
   // ---- Fokusfälla i modal ----
   function trapFocus(e) {
     if (overlay.hidden || e.key !== "Tab") return;
@@ -540,15 +868,35 @@
   overlay.addEventListener("click", (e) => {
     if (e.target === overlay) closeModal();
   });
+
+  // Listor: öppna/stäng hanteringsmodal
+  openListsBtn.addEventListener("click", openListsModal);
+  listsClose.addEventListener("click", closeListsModal);
+  listsOverlay.addEventListener("click", (e) => {
+    if (e.target === listsOverlay) closeListsModal();
+  });
+
+  // Stäng popover vid klick utanför, scroll eller fönsterändring
+  document.addEventListener("click", (e) => {
+    if (!listPopover.hidden && !listPopover.contains(e.target)) closeListPopover();
+  });
+  window.addEventListener("scroll", closeListPopover, true);
+  window.addEventListener("resize", closeListPopover);
+
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !overlay.hidden) closeModal();
-    else trapFocus(e);
+    if (e.key === "Escape") {
+      if (!listPopover.hidden) return closeListPopover();
+      if (!listsOverlay.hidden) return closeListsModal();
+      if (!overlay.hidden) return closeModal();
+    }
+    trapFocus(e);
   });
   window.addEventListener("hashchange", () => syncFromHash(true));
   window.addEventListener("popstate", () => syncFromHash(true));
 
   // ---- Init ----
   lawCountBadge.textContent = laws.length + " lagar";
+  updateListsCount();
   renderFilters();
   renderList();
   syncFromHash(false); // öppna direkt om URL pekar på en lag

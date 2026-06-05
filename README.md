@@ -12,6 +12,9 @@ miljö och hållbarhet som berör företag**. Varje lag kan generera en konkret
   Hållbarhetsrapportering m.fl.).
 - 📋 **Checklista per lag** – varje lag har en steg-för-steg-checklista för
   efterlevnad. Bocka av punkter; status sparas lokalt i webbläsaren.
+- 🔖 **Mina listor** – skapa egna listor (t.ex. per verksamhet, projekt eller
+  ansvarsområde) och spara lagar i dem via bokmärkesikonen på varje lag eller
+  i lagvyn. Filtrera rutnätet till en vald lista. Listorna sparas lokalt.
 - 📊 **Progressindikator** som visar hur långt du kommit per lag.
 - 🖨️ **Skriv ut / spara som PDF** för en enskild lags checklista.
 - 🔗 Länk till lagtexten på riksdagen.se / ansvarig myndighet.
